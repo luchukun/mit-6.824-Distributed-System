@@ -25,12 +25,12 @@ func doMap(
 	fi, err:= os.OpenFile(inFile,os.O_RDONLY,0666)
 	debug("%s:open file[%s]",time.Now().Format(time.RFC850),inFile)
 	if err != nil {
-		errInfo :=fmt.Sprint("open file named[%s] failure: %s",inFile,err)
+		errInfo :=fmt.Sprint("open file named[%s] failure,error message: %s",inFile,err)
 		log.Fatal(errInfo)
 	}
 	defer func() {
 		if err := fi.Close();err != nil {
-			errInfo := fmt.Sprint("close file named[%s] failure: %s",inFile,err)
+			errInfo := fmt.Sprint("close file named[%s] failure,error message: %s",inFile,err)
 			log.Fatal(errInfo)
 		}
 	}()
@@ -38,7 +38,7 @@ func doMap(
 	debug("%s:beginning reade contents from file[%s]",time.Now().Format(time.RFC850),inFile)
 	fileState , err := fi.Stat()
 	if err != nil {
-		errInfo := fmt.Sprint("%cannot get file[%s] info: %s",inFile,err)
+		errInfo := fmt.Sprint("%cannot get file[%s],error message: %s",inFile,err)
 		log.Fatal(errInfo)
 	}
 	size := fileState.Size()
@@ -54,6 +54,15 @@ func doMap(
 	keyvalues :=  mapF(inFile,string(buffer))
 	debug("%s end mapping contents in file[%s]",time.Now().Format(time.RFC850))
 	debug("%s write key/val pairs into reduce files",time.Now().Format(time.RFC850))
+	//prcompute hash value of every key
+	hashValue := make(map[string]uint32)
+	for _,keyValue := range keyvalues {
+		if _,ok := hashValue[keyValue.Key];!ok {
+			//already compute hash val for this key,let's skip it
+			continue
+		}
+		hashValue[keyValue.Key] = ihash(keyValue.Key)
+	}
 	for i := 0;i < nReduce;i++ {
 		//create #nReduce intermediate files
 		fileName := reduceName(jobName,mapTaskNumber,i)
@@ -61,18 +70,17 @@ func doMap(
 		if err != nil {
 			log.Fatal("cannot create intermediate file[%s]",fileName)
 		}
-		bufferReader := bufio.NewWriter(reduceFile)
-		jsonBufferReader := json.NewEncoder(bufferReader)
-		for _,val := range keyvalues {
+		jsonBufferReader := json.NewEncoder(reduceFile)
+		for _,keyValue := range keyvalues {
 			//store every key/val pair to corresponding reduce file using hash function
-			if ihash(val.Key) % uint32(nReduce) == uint32(i) {
-				if err := jsonBufferReader.Encode(&val);err != nil {
+			if hashValue[keyValue.Key] % uint32(nReduce) == uint32(i) {
+				if err := jsonBufferReader.Encode(&keyValue);err != nil {
 					log.Fatal("ecode err:",err)
 				}
 			}
 		}
 		if err := reduceFile.Close();err != nil{
-			errInfo := fmt.Sprintf("cannot close reduce file[%s],error information:",fileName,err)
+			errInfo := fmt.Sprintf("cannot close reduce file[%s],error message:",fileName,err)
 			log.Fatal(errInfo)
 		}
 	}
