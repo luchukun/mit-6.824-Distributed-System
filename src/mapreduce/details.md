@@ -56,7 +56,7 @@ WaitGroup用来等待一组协程完成工作。有三个方法：  
 [具体实现](./schedule.go)
 
 ####Part V：Inverted index generation  
-这部分需要我们实现倒排索引，即统计每个单词出现在哪些文本里，同时记录这些文本，这部分需要主要最后的输出格式：
+这部分需要我们实现倒排索引，即统计每个单词出现在哪些文本里，同时记录这些文本。和第二部分的word count类似，不过需要主要最后的输出格式：
 ```
 word: #documents documents,sorted,and,separated,by,commas
 可以使用fmt.Sprint（）生成指定格式的字符串
