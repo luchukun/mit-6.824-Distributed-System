@@ -1,2 +1,7 @@
-####Lab1共有五个部分,需要阅读MapReduce的[原始论文](/mapreduce.pdf)  
-####Part1
+####Lab1共有五个部分,需要阅读MapReduce的[原始论文](/mapreduce.pdf)。  
+论文不是很难理解，mapreduce原理很简单，感觉类似java 7的fork/join框架。我想要实现这样一个可以用于生产环境的系统更多是关于工程方面的问题。在这里想感慨一下，前几日参加阿里的宣讲会，一学长给我介绍了一下阿里的四代架构，貌似是04的第一代架构还是很原始的形式。那时候google已经做出了map/reduce的第一代实现了。不过今年双十一，阿里能处理的并发量已经达到12w笔交易/s了。经过十几年，中国的技术已经有了很大的进步了。
+####Part1 Map/Reduce input and output  
+该部分需要我们完成doReduce和doMap这两个函数。mapreduce论文图一给出了map/reduce的基本工作流程。这一部分需要我们完成读取分割之后的文件里的内容，然后调用用户写好的map函数处理读取到的文件内容，并以{key,value}对储存在中间文件中，中间文件的文件名须调用reduceName（）生成。关于读取输入文件以及生成中间文件，论文里提到了两点： 
+* 输入文件是由GFS管理，储存在集群服务器的本地磁盘里。而且GFS会将每个文件分割为64M大小的块，并将该块拷贝3份分别储存在不同的机器上。因此在调度分配Task时，Master会将Task分配给储存有该Task相关的文件块的Worker，已减少网络中需要传输的数据量。这点很重要，有文章指出运行在数据中心之上的分布式应用会由于底层网络资源的限制，而降低20-30%的性能。  
+* map阶段生成的中间文件存储在本地磁盘，Master只要把中间文件的文件名告诉执行reduce任务的Worker即可。对于每个Map worker得到的临时key/value对，储存在#nReduce个中间文件里。对key值算hash取模决定放置哪个中间文件里。因此每个reduce worker需要读取各个map worker生成的中间文件对应着自己的那一个。  
+因此对于doReduce，读取inFile文件的内容，调用map方法，并对生成的keyvalue数组中每个key值计算hash值，取模。储存在对应的文件中。[具体实现](./common_map.go)
