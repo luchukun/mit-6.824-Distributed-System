@@ -1,13 +1,13 @@
 package mapreduce
 
 import (
+	"bufio"
+	"encoding/json"
+	"fmt"
 	"hash/fnv"
 	"log"
 	"os"
-	"bufio"
-	"fmt"
 	"time"
-	"encoding/json"
 )
 
 // doMap does the job of a map worker: it reads one of the input files
@@ -22,65 +22,65 @@ func doMap(
 ) {
 	// TODO:
 	//Open inFile
-	fi, err:= os.OpenFile(inFile,os.O_RDONLY,0666)
-	debug("%s:open file[%s]",time.Now().Format(time.RFC850),inFile)
+	fi, err := os.OpenFile(inFile, os.O_RDONLY, 0666)
+	debug("%s:open file[%s]", time.Now().Format(time.RFC850), inFile)
 	if err != nil {
-		errInfo :=fmt.Sprint("open file named[%s] failure,error message: %s",inFile,err)
+		errInfo := fmt.Sprint("open file named[%s] failure,error message: %s", inFile, err)
 		log.Fatal(errInfo)
 	}
 	defer func() {
-		if err := fi.Close();err != nil {
-			errInfo := fmt.Sprint("close file named[%s] failure,error message: %s",inFile,err)
+		if err := fi.Close(); err != nil {
+			errInfo := fmt.Sprint("close file named[%s] failure,error message: %s", inFile, err)
 			log.Fatal(errInfo)
 		}
 	}()
 	//Reade contents from inFile
-	debug("%s:beginning reade contents from file[%s]",time.Now().Format(time.RFC850),inFile)
-	fileState , err := fi.Stat()
+	debug("%s:beginning reade contents from file[%s]", time.Now().Format(time.RFC850), inFile)
+	fileState, err := fi.Stat()
 	if err != nil {
-		errInfo := fmt.Sprint("%cannot get file[%s],error message: %s",inFile,err)
+		errInfo := fmt.Sprint("%cannot get file[%s],error message: %s", inFile, err)
 		log.Fatal(errInfo)
 	}
 	size := fileState.Size()
-	buffer := make([]byte,size)
+	buffer := make([]byte, size)
 	br := bufio.NewReader(fi)
-	_,err = br.Read(buffer)
+	_, err = br.Read(buffer)
 	if err != nil {
-		errInfo := fmt.Sprintf("cannot reade contens from file[%s]",inFile)
+		errInfo := fmt.Sprintf("cannot reade contens from file[%s]", inFile)
 		log.Fatal(errInfo)
 	}
 	//map contents to keyvalue pairs
-	debug("%s begin mapping contents in file[%s] to key/val pairs",time.Now().Format(time.RFC850))
-	keyvalues :=  mapF(inFile,string(buffer))
-	debug("%s end mapping contents in file[%s]",time.Now().Format(time.RFC850))
-	debug("%s write key/val pairs into reduce files",time.Now().Format(time.RFC850))
+	debug("%s begin mapping contents in file[%s] to key/val pairs", time.Now().Format(time.RFC850))
+	keyvalues := mapF(inFile, string(buffer))
+	debug("%s end mapping contents in file[%s]", time.Now().Format(time.RFC850))
+	debug("%s write key/val pairs into reduce files", time.Now().Format(time.RFC850))
 	//prcompute hash value of every key
 	hashValue := make(map[string]uint32)
-	for _,keyValue := range keyvalues {
-		if _,ok := hashValue[keyValue.Key];!ok {
+	for _, keyValue := range keyvalues {
+		if _, ok := hashValue[keyValue.Key]; !ok {
 			//already compute hash val for this key,let's skip it
 			continue
 		}
 		hashValue[keyValue.Key] = ihash(keyValue.Key)
 	}
-	for i := 0;i < nReduce;i++ {
+	for i := 0; i < nReduce; i++ {
 		//create #nReduce intermediate files
-		fileName := reduceName(jobName,mapTaskNumber,i)
-		reduceFile,err := os.Create(fileName)
+		fileName := reduceName(jobName, mapTaskNumber, i)
+		reduceFile, err := os.Create(fileName)
 		if err != nil {
-			log.Fatal("cannot create intermediate file[%s]",fileName)
+			log.Fatal("cannot create intermediate file[%s]", fileName)
 		}
 		jsonBufferReader := json.NewEncoder(reduceFile)
-		for _,keyValue := range keyvalues {
+		for _, keyValue := range keyvalues {
 			//store every key/val pair to corresponding reduce file using hash function
-			if hashValue[keyValue.Key] % uint32(nReduce) == uint32(i) {
-				if err := jsonBufferReader.Encode(&keyValue);err != nil {
-					log.Fatal("ecode err:",err)
+			if hashValue[keyValue.Key]%uint32(nReduce) == uint32(i) {
+				if err := jsonBufferReader.Encode(&keyValue); err != nil {
+					log.Fatal("ecode err:", err)
 				}
 			}
 		}
-		if err := reduceFile.Close();err != nil{
-			errInfo := fmt.Sprintf("cannot close reduce file[%s],error message:",fileName,err)
+		if err := reduceFile.Close(); err != nil {
+			errInfo := fmt.Sprintf("cannot close reduce file[%s],error message:", fileName, err)
 			log.Fatal(errInfo)
 		}
 	}

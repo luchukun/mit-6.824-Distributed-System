@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"mapreduce"
-	"strings"
+	"os"
 	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -15,12 +15,12 @@ import (
 // key/value pairs, each represented by a mapreduce.KeyValue.
 func mapF(document string, value string) (res []mapreduce.KeyValue) {
 	// TODO: you have to write this function
-	words := strings.FieldsFunc(value,func (r rune) bool {
+	words := strings.FieldsFunc(value, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
-	var kvs  []mapreduce.KeyValue
-	for _,word := range words {
-		kvs = append(kvs,mapreduce.KeyValue{word,"1"})
+	var kvs []mapreduce.KeyValue
+	for _, word := range words {
+		kvs = append(kvs, mapreduce.KeyValue{word, "1"})
 	}
 	return kvs
 }
