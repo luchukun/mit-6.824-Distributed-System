@@ -29,7 +29,7 @@ registerChannel chan string
 workers  []string
 ```
 
-无论是在map还是reduce阶段，在goroutines里处理每个需要worker执行的Task。通过mr.registerChannel接受注册的worker，通过rpc调用该worker的DoTask。这里我们使用该课程自己实现的rpc框架。该框架封装了go net/rpc库。对于执行失败的Task，继续取mr.registerChannel传递进来的worker执行。若执行成功，将该worker传递进mr.registerChannel，以执行其他任务。
+无论是在map还是reduce阶段，新建goroutine处理每个需要worker执行的Task。通过mr.registerChannel接受注册的worker，通过rpc调用该worker的DoTask。这里我们使用该课程自己实现的rpc框架。该框架封装了go net/rpc库。对于执行失败的Task，继续取mr.registerChannel传递进来的worker执行。若执行成功，将该worker传递进mr.registerChannel，以执行其他任务。
 ```
 go func(taskNum int,nios int, phase jobPhase) {
 	for {
