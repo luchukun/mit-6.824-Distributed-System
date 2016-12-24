@@ -16,3 +16,41 @@ words := strings.FieldsFunc(value, func(r rune) bool {
 
 对于每个word构建一个KeyValue{word,"1"},并维护一个储存KeyValue的slice。  
 对于reduce函数，因为对于每一次word的出现，我们便构建了一个KeyValue，而之前实现的doReduce会将相同key值的value储存在一个slice里传递给reduce函数，因此这里我们只slice的长度就是key出现的次数。这里要注意下，len(slice)返回的int类型，但我们写的reduce需要返回string类型。需要使用strconv.Itoa()将int转换为string类型。[具体实现](../main/wc.go)
+####Part III:Distributing MapReduce tasks  
+在这一部分，我们需要实现master调度任务的程序。Mit 6.824实现map/reduce的基本工作流程是：
+* 用户指定map，reduce函数，以及nReduce表示执行reduce的worker的数量。因为，根据输入文件分割之后的文件数目，不需要指定执行map的worker的数目。调用master.go中的run函数  
+* run中，会以此调用schedule(mapPhase),schedule(reducePhase)执行map和reduce阶段  
+* shcedule()会使用rpc调用注册的worker的doTask函数，执行任务  
+* 这两个阶段完成之后，调用merge合并reduce生成的文件，作为最后的输出结果
+
+master会维护一个slice workers记录注册的worker，和一个channel ，传递注册的worker,registerChannel。worker注册时，master会首选将该worker添加进自己维护的workers数据结构中，然后将该worker传递进registerChannel。
+```
+registerChannel chan string
+workers  []string
+```
+
+无论是在map还是reduce阶段，在goroutines里处理每个需要worker执行的Task。通过mr.registerChannel接受注册的worker，通过rpc调用该worker的DoTask。这里我们使用该课程自己实现的rpc框架。该框架封装了go net/rpc库。对于执行失败的Task，继续取mr.registerChannel传递进来的worker执行。若执行成功，将该worker传递进mr.registerChannel，以执行其他任务。
+```
+go func(taskNum int,nios int, phase jobPhase) {
+	for {
+		worker := <- mr.registerChannel
+		ok := call(worker,"Worker.DoTask",&taskArgs,new(struct{}))
+		if ok {
+			//success, break and put the worker into channel
+			go func(){
+				mr.registerChannel <- worker
+			}()
+			break
+		}
+		//failure,just retry
+	}
+	}(i,nios,phase)
+```
+
+我们需要等待所有的Task都执行完之后，才能退出schedle函数，不然可能导致下一阶段出现失败。可以使用go提供的sync.WaitGroup。  
+WaitGroup用来等待一组协程完成工作。有三个方法：  
+* Add(int) 增加WaitGroup内部的计数器的值
+* Done()  表示一个协程已经完成工作了，将WaitGroup计数器的值减1，其实就是调用Add(-1)
+* Wait() 同步调用，因此会被阻塞直到WaitGroup内部计数器的值为0方法返回
+
+[具体实现](../main/wc.go)
