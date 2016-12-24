@@ -1,4 +1,4 @@
-## mit-6.824-Distributed-System-Spring 2016
+## mit-6.824 Distributed-System Spring 2016
 ---
 
 **This is my implementation for [MIT 6.824](https://pdos.csail.mit.edu/6.824/),Distributed System,Spring 2016**
