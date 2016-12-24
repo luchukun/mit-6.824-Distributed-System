@@ -8,6 +8,7 @@
   - Part II:Single-worker word count  
   - Part III:Distributing MapReduce tasks  
   - Part IV: Handling worker failures  
-  - Part V: Inverted index generation(oprional)  
+  - Part V: Inverted index generation(oprional)
+  
 [Implement details](/src/mapreduce/details.md)
 
