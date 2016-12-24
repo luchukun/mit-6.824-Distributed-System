@@ -12,6 +12,7 @@
 words := strings.FieldsFunc(value, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
-```  
+```
+
 对于每个word构建一个KeyValue{word,"1"},并维护一个储存KeyValue的slice。  
 对于reduce函数，因为对于每一次word的出现，我们便构建了一个KeyValue，而之前实现的doReduce会将相同key值的value储存在一个slice里传递给reduce函数，因此这里我们只slice的长度就是key出现的次数。这里要注意下，len(slice)返回的int类型，但我们写的reduce需要返回string类型。需要使用strconv.Itoa()将int转换为string类型。[具体实现](../main/wc.go)
