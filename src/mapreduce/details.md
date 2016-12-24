@@ -53,4 +53,4 @@ WaitGroup用来等待一组协程完成工作。有三个方法：  
 * Done()  表示一个协程已经完成工作了，将WaitGroup计数器的值减1，其实就是调用Add(-1)
 * Wait() 同步调用，因此会被阻塞直到WaitGroup内部计数器的值为0方法返回
 
-[具体实现](../main/wc.go)
+[具体实现](./schedule.go)
